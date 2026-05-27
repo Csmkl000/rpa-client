@@ -15,7 +15,7 @@ program
 program
   .command('start')
   .description('启动 RPA 平台')
-  .option('-p, --port <port>', '服务端口', '3000')
+  .option('-p, --port <port>', '服务端口', '3456')
   .option('-h, --host <host>', '监听地址', 'localhost')
   .action(async (options) => {
     await startServer({

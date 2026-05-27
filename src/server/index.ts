@@ -14,9 +14,22 @@ export interface ServerOptions {
   host?: string
 }
 
+async function findAvailablePort(startPort: number): Promise<number> {
+  for (let port = startPort; port < startPort + 100; port++) {
+    try {
+      const res = await fetch(`http://localhost:${port}/api/health`, { signal: AbortSignal.timeout(500) })
+      if (!res.ok) return port
+    } catch {
+      return port
+    }
+  }
+  throw new Error('找不到可用端口')
+}
+
 export async function startServer(options: ServerOptions = {}) {
-  const port = options.port || 3000
+  const preferredPort = options.port || 3456
   const host = options.host || 'localhost'
+  const port = await findAvailablePort(preferredPort)
 
   const app = Fastify({
     logger: true,
@@ -65,5 +78,5 @@ export async function startServer(options: ServerOptions = {}) {
 
 // 直接运行
 if (import.meta.main) {
-  startServer({ port: parseInt(process.env.RPA_PORT || '3000') })
+  startServer({ port: parseInt(process.env.RPA_PORT || '3456') })
 }
