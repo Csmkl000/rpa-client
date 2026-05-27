@@ -1,0 +1,38 @@
+{
+  "name": "rpa-client",
+  "version": "0.1.0",
+  "description": "AI-driven RPA platform powered by Stagehand",
+  "type": "module",
+  "bin": {
+    "rpa-client": "./src/cli.ts"
+  },
+  "scripts": {
+    "dev": "concurrently \"bun run server:dev\" \"bun run web:dev\"",
+    "server:dev": "bun --watch src/server/index.ts",
+    "web:dev": "cd web && bun run dev",
+    "web:build": "cd web && bun run build",
+    "db:generate": "bun run src/db/migrate.ts generate",
+    "db:migrate": "bun run src/db/migrate.ts run",
+    "start": "bun run src/cli.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@browserbasehq/stagehand": "^1.14.0",
+    "commander": "^13.0.0",
+    "croner": "^9.0.0",
+    "drizzle-orm": "^0.38.0",
+    "fastify": "^5.0.0",
+    "@fastify/cors": "^11.0.0",
+    "@fastify/static": "^8.0.0",
+    "p-queue": "^8.0.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.0",
+    "bun-types": "^1.3.14",
+    "concurrently": "^9.0.0",
+    "drizzle-kit": "^0.30.0",
+    "typescript": "^5.7.0"
+  }
+}
