@@ -8,6 +8,8 @@ export interface BrowserManagerOptions {
   userDataDir?: string
   modelName?: string
   apiKey?: string
+  provider?: string
+  baseUrl?: string
 }
 
 export class BrowserManager {
@@ -39,15 +41,29 @@ export class BrowserManager {
       await this.connect()
     }
 
-    this.stagehand = new Stagehand({
+    const isCustom = this.options.provider === 'openai'
+
+    const stagehandOptions: any = {
       env: 'LOCAL',
       modelName: (this.options.modelName as any) || 'claude-sonnet-4-20250514',
       modelClientOptions: {
         apiKey: this.options.apiKey || process.env.ANTHROPIC_API_KEY,
       },
-    })
+    }
 
-    await this.stagehand.init()
+    // OpenAI 兼容模式：设置 baseURL 让 Stagehand 的 OpenAI 客户端指向自定义端点
+    if (isCustom && this.options.baseUrl) {
+      stagehandOptions.modelClientOptions.baseURL = this.options.baseUrl
+    }
+
+    this.stagehand = new Stagehand(stagehandOptions)
+
+    try {
+      await this.stagehand.init()
+    } catch (err) {
+      console.error('Stagehand 初始化失败:', err)
+      throw err
+    }
 
     return this.stagehand
   }

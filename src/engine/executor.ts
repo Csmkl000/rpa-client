@@ -71,7 +71,15 @@ export class WorkflowExecutor {
   private callback?: ExecutionCallback
 
   constructor(browserOptions: BrowserManagerOptions = {}, aiConfig?: Partial<AIConfig>) {
-    this.browserManager = new BrowserManager(browserOptions)
+    // 合并 AI 配置到浏览器选项，让 Stagehand 使用正确的模型
+    const mergedBrowserOptions: BrowserManagerOptions = {
+      ...browserOptions,
+      modelName: aiConfig?.modelName || browserOptions.modelName,
+      apiKey: aiConfig?.apiKey || browserOptions.apiKey,
+      provider: aiConfig?.provider || browserOptions.provider,
+      baseUrl: aiConfig?.baseUrl || browserOptions.baseUrl,
+    }
+    this.browserManager = new BrowserManager(mergedBrowserOptions)
     this.aiRecovery = new AIRecovery(aiConfig)
     this.executionId = randomUUID()
   }

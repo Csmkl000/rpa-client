@@ -121,8 +121,16 @@ export async function executionRoutes(app: FastifyInstance, ws: WsManager) {
           status: result.status,
           duration: result.duration,
         })
-      }).catch((err) => {
+      }).catch(async (err) => {
         console.error('执行队列错误:', err)
+        // 更新执行状态为失败
+        await db.update(executions).set({
+          status: 'failed',
+          stepLogs: JSON.stringify([{ stepId: 'init', stepType: 'init', status: 'failed', startedAt: Date.now(), finishedAt: Date.now(), duration: 0, error: err.message || String(err) }]),
+          finishedAt: new Date(),
+          duration: 0,
+        }).where(eq(executions.id, executionId))
+        ws.broadcast('execution:done', { executionId, status: 'failed', duration: 0 })
       })
 
       return { executionId, status: 'queued' }
