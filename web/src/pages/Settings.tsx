@@ -43,34 +43,33 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-6 max-w-2xl">
-      <h2 className="text-2xl font-bold mb-6">设置</h2>
+    <div className="p-8 max-w-3xl">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-900">设置</h2>
+        <p className="text-sm text-gray-500 mt-1">配置浏览器连接和 AI 服务</p>
+      </div>
 
-      {/* 浏览器设置 */}
-      <section className="bg-white border rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-4">浏览器</h3>
+      {/* 浏览器 */}
+      <section className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
+        <h3 className="text-base font-semibold text-gray-900 mb-5">浏览器连接</h3>
 
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5 p-4 bg-gray-50 rounded-lg">
           <div>
-            <div className="text-sm font-medium">连接状态</div>
-            <div className="text-xs text-gray-500 mt-1">
-              通过 CDP 协议连接本地 Chrome/Edge
-            </div>
+            <div className="text-sm font-medium text-gray-900">连接状态</div>
+            <div className="text-xs text-gray-500 mt-0.5">通过 CDP 协议连接本地 Chrome / Edge</div>
           </div>
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              browserStatus?.connected
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
-            }`}
-          >
-            {browserStatus?.connected ? '已连接' : '未连接'}
-          </span>
+          <div className="flex items-center gap-2">
+            <div className={`w-2.5 h-2.5 rounded-full ${browserStatus?.connected ? 'bg-green-400' : 'bg-red-400'}`} />
+            <span className={`text-sm font-medium ${browserStatus?.connected ? 'text-green-700' : 'text-red-700'}`}>
+              {browserStatus?.connected ? '已连接' : '未连接'}
+            </span>
+          </div>
         </div>
 
         {browserStatus?.connected && (
-          <div className="text-sm text-gray-600 mb-4">
-            调试端口: {browserStatus.port} · 标签页: {browserStatus.pageCount}
+          <div className="flex gap-6 mb-5 text-sm">
+            <div><span className="text-gray-500">调试端口:</span> <span className="font-mono font-medium">{browserStatus.port}</span></div>
+            <div><span className="text-gray-500">标签页:</span> <span className="font-mono font-medium">{browserStatus.pageCount}</span></div>
           </div>
         )}
 
@@ -78,50 +77,62 @@ export default function Settings() {
           <button
             onClick={handleLaunch}
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
+            className="px-5 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors"
           >
             {loading ? '处理中...' : '启动浏览器'}
           </button>
           <button
             onClick={handleClose}
             disabled={loading}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200 disabled:opacity-50"
+            className="px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
             关闭浏览器
           </button>
           <button
             onClick={checkBrowser}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200"
+            className="px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
           >
-            刷新状态
+            刷新
           </button>
         </div>
       </section>
 
-      {/* 手动连接说明 */}
-      <section className="bg-white border rounded-lg p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-4">手动连接浏览器</h3>
-        <p className="text-sm text-gray-600 mb-3">
-          如果自动启动失败，可以手动启动 Chrome 并开启远程调试：
-        </p>
-        <div className="bg-gray-50 rounded p-3 font-mono text-sm">
-          <div className="text-gray-500 mb-1"># Windows</div>
-          <div>chrome.exe --remote-debugging-port=9222</div>
-          <div className="text-gray-500 mt-3 mb-1"># macOS</div>
-          <div>/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222</div>
-          <div className="text-gray-500 mt-3 mb-1"># Linux</div>
-          <div>google-chrome --remote-debugging-port=9222</div>
+      {/* 手动连接 */}
+      <section className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">手动连接浏览器</h3>
+        <p className="text-sm text-gray-600 mb-4">如果自动启动失败，手动启动 Chrome 并开启远程调试：</p>
+        <div className="space-y-3">
+          {[
+            { os: 'Windows', cmd: 'chrome.exe --remote-debugging-port=9222' },
+            { os: 'macOS', cmd: '/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9222' },
+            { os: 'Linux', cmd: 'google-chrome --remote-debugging-port=9222' },
+          ].map((item) => (
+            <div key={item.os}>
+              <div className="text-xs font-medium text-gray-500 mb-1">{item.os}</div>
+              <code className="block bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5 text-xs font-mono text-gray-700">
+                {item.cmd}
+              </code>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* AI 配置 */}
-      <section className="bg-white border rounded-lg p-6">
-        <h3 className="text-lg font-semibold mb-4">AI 配置</h3>
-        <div className="text-sm text-gray-600">
-          <p>需要设置环境变量 <code className="bg-gray-100 px-1 rounded">ANTHROPIC_API_KEY</code></p>
-          <p className="mt-2">在启动前设置：</p>
-          <div className="bg-gray-50 rounded p-3 font-mono text-sm mt-2">
-            export ANTHROPIC_API_KEY=sk-ant-...
+      <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+        <h3 className="text-base font-semibold text-gray-900 mb-4">AI 配置</h3>
+        <div className="text-sm text-gray-600 space-y-3">
+          <p>需要设置环境变量 <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">ANTHROPIC_API_KEY</code></p>
+          <div>
+            <div className="text-xs font-medium text-gray-500 mb-1">Windows PowerShell</div>
+            <code className="block bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5 text-xs font-mono text-gray-700">
+              $env:ANTHROPIC_API_KEY = "sk-ant-..."
+            </code>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-gray-500 mb-1">macOS / Linux</div>
+            <code className="block bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5 text-xs font-mono text-gray-700">
+              export ANTHROPIC_API_KEY=sk-ant-...
+            </code>
           </div>
         </div>
       </section>
