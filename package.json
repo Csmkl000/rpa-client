@@ -19,12 +19,13 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "@browserbasehq/stagehand": "^1.14.0",
+    "@fastify/cors": "^11.0.0",
+    "@fastify/static": "^8.0.0",
     "commander": "^13.0.0",
     "croner": "^9.0.0",
     "drizzle-orm": "^0.38.0",
     "fastify": "^5.0.0",
-    "@fastify/cors": "^11.0.0",
-    "@fastify/static": "^8.0.0",
+    "openai": "^6.39.0",
     "p-queue": "^8.0.0",
     "ws": "^8.18.0",
     "zod": "^3.24.0"

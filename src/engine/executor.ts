@@ -3,6 +3,7 @@ import { Stagehand } from '@browserbasehq/stagehand'
 import { randomUUID } from 'crypto'
 import { BrowserManager, type BrowserManagerOptions } from './browser'
 import { AIRecovery } from '../ai/recovery'
+import type { AIConfig } from '../ai/generator'
 
 // 流程步骤类型
 export interface WorkflowStep {
@@ -69,9 +70,9 @@ export class WorkflowExecutor {
   private outputs: Record<string, any> = {}
   private callback?: ExecutionCallback
 
-  constructor(browserOptions: BrowserManagerOptions = {}) {
+  constructor(browserOptions: BrowserManagerOptions = {}, aiConfig?: Partial<AIConfig>) {
     this.browserManager = new BrowserManager(browserOptions)
-    this.aiRecovery = new AIRecovery()
+    this.aiRecovery = new AIRecovery(aiConfig)
     this.executionId = randomUUID()
   }
 
