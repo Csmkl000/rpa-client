@@ -21,6 +21,7 @@ async function saveConfig(data: Record<string, string>): Promise<Record<string, 
 export default function Settings() {
   const { connected, info, check } = useBrowserStore()
   const [loading, setLoading] = useState(false)
+  const [launchMsg, setLaunchMsg] = useState<string | null>(null)
   const [config, setConfig] = useState<Record<string, string>>({})
   const [configLoading, setConfigLoading] = useState(true)
   const [saved, setSaved] = useState(false)
@@ -43,11 +44,16 @@ export default function Settings() {
 
   async function handleLaunch() {
     setLoading(true)
+    setLaunchMsg(null)
     try {
-      await browserApi.launch()
-      await check()
+      const result = await browserApi.launch()
+      if (result.needsManualRestart) {
+        setLaunchMsg(result.message)
+      } else {
+        await check()
+      }
     } catch (err) {
-      alert(`启动失败: ${(err as Error).message}`)
+      setLaunchMsg(`启动失败: ${(err as Error).message}`)
     } finally {
       setLoading(false)
     }
@@ -110,6 +116,29 @@ export default function Settings() {
             刷新
           </button>
         </div>
+
+        {launchMsg && (
+          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <span className="text-amber-500 mt-0.5">⚠️</span>
+              <div>
+                <div className="text-sm font-medium text-amber-800 mb-2">需要手动启动浏览器</div>
+                <p className="text-sm text-amber-700 mb-3">{launchMsg}</p>
+                <div className="space-y-2">
+                  <div className="text-xs font-medium text-amber-600">操作步骤：</div>
+                  <ol className="text-xs text-amber-700 space-y-1.5 list-decimal list-inside">
+                    <li>关闭所有 Chrome 窗口</li>
+                    <li>按 Win+R，输入以下命令并回车：</li>
+                  </ol>
+                  <code className="block bg-amber-100 border border-amber-200 rounded px-3 py-2 text-xs font-mono text-amber-900 mt-2">
+                    chrome.exe --remote-debugging-port=9222
+                  </code>
+                  <p className="text-xs text-amber-600 mt-2">启动后回到此页面点击「刷新」</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* AI 模型配置 */}

@@ -1,4 +1,4 @@
-import { spawn } from 'child_process'
+import { spawn, execSync } from 'child_process'
 import { existsSync } from 'fs'
 import { join } from 'path'
 
@@ -8,6 +8,14 @@ interface LaunchOptions {
   port?: number
   userDataDir?: string | 'default'
   browser?: 'chrome' | 'edge' | 'auto'
+}
+
+interface LaunchResult {
+  port: number
+  reused: boolean
+  pid?: number
+  needsManualRestart?: boolean
+  message?: string
 }
 
 const browserPaths: Record<string, Record<string, string[]>> = {
@@ -39,7 +47,6 @@ const browserPaths: Record<string, Record<string, string[]>> = {
   },
 }
 
-// 用户默认 Chrome 数据目录
 const defaultUserDataDirs: Record<string, string> = {
   win32: join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'User Data'),
   darwin: join(process.env.HOME || '', 'Library', 'Application Support', 'Google', 'Chrome'),
@@ -65,7 +72,7 @@ function findBrowserPath(browser: 'chrome' | 'edge' | 'auto'): string {
   throw new Error('未找到浏览器。请安装 Chrome 或 Edge。')
 }
 
-async function isPortOpen(port: number): Promise<boolean> {
+async function isDebugPortOpen(port: number): Promise<boolean> {
   try {
     const res = await fetch(`http://localhost:${port}/json/version`, {
       signal: AbortSignal.timeout(2000),
@@ -76,28 +83,58 @@ async function isPortOpen(port: number): Promise<boolean> {
   }
 }
 
+function isChromeRunning(): boolean {
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync('tasklist /FI "IMAGENAME eq chrome.exe" /NH', {
+        encoding: 'utf-8',
+        timeout: 5000,
+      })
+      return output.includes('chrome.exe')
+    } else if (process.platform === 'darwin') {
+      const output = execSync('pgrep -x "Google Chrome"', { encoding: 'utf-8', timeout: 5000 })
+      return output.trim().length > 0
+    } else {
+      const output = execSync('pgrep -x chrome || pgrep -x google-chrome || true', { encoding: 'utf-8', timeout: 5000 })
+      return output.trim().length > 0
+    }
+  } catch {
+    return false
+  }
+}
+
 async function waitForReady(port: number, timeout = 15000): Promise<void> {
   const start = Date.now()
   while (Date.now() - start < timeout) {
-    if (await isPortOpen(port)) return
+    if (await isDebugPortOpen(port)) return
     await new Promise(r => setTimeout(r, 500))
   }
   throw new Error(`浏览器启动超时 (${timeout}ms)`)
 }
 
-export async function launchLocalBrowser(options: LaunchOptions = {}) {
+export async function launchLocalBrowser(options: LaunchOptions = {}): Promise<LaunchResult> {
   const port = options.port || DEFAULT_PORT
   const browserType = options.browser || 'auto'
 
-  // 已有浏览器在运行，直接复用
-  if (await isPortOpen(port)) {
-    console.log(`浏览器已在 localhost:${port} 运行，直接复用`)
+  // 已经有调试端口在监听，直接复用
+  if (await isDebugPortOpen(port)) {
+    console.log(`浏览器已在 localhost:${port} 运行（调试模式），直接复用`)
     return { port, reused: true }
   }
 
+  // Chrome 在运行但没有调试端口 → 无法自动开启
+  if (isChromeRunning()) {
+    return {
+      port,
+      reused: false,
+      needsManualRestart: true,
+      message: 'Chrome 已在运行但未开启调试端口。请关闭所有 Chrome 窗口后，用以下命令重新启动：\nchrome.exe --remote-debugging-port=9222',
+    }
+  }
+
+  // Chrome 没有运行 → 直接启动
   const browserPath = findBrowserPath(browserType)
 
-  // 默认使用用户自己的 Chrome 数据目录（保留登录状态、Cookie、扩展等）
   let userDataDir: string
   if (options.userDataDir === 'default' || options.userDataDir === undefined) {
     userDataDir = defaultUserDataDirs[process.platform] || join(
@@ -111,7 +148,6 @@ export async function launchLocalBrowser(options: LaunchOptions = {}) {
 
   console.log(`启动浏览器: ${browserPath}`)
   console.log(`调试端口: ${port}`)
-  console.log(`用户数据目录: ${userDataDir}`)
 
   const child = spawn(browserPath, [
     `--remote-debugging-port=${port}`,
@@ -129,7 +165,7 @@ export async function launchLocalBrowser(options: LaunchOptions = {}) {
   child.unref()
 
   await waitForReady(port)
-  console.log('浏览器已就绪')
+  console.log('浏览器已就绪（调试模式）')
 
   return { port, reused: false, pid: child.pid }
 }
