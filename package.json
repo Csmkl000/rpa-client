@@ -10,6 +10,7 @@
     "dev": "concurrently \"bun run server:dev\" \"bun run web:dev\"",
     "server:dev": "bun --watch src/server/index.ts",
     "web:dev": "cd web && bun run dev",
+    "kill": "taskkill /F /IM bun.exe 2>nul || true",
     "web:build": "cd web && bun run build",
     "db:generate": "bun run src/db/migrate.ts generate",
     "db:migrate": "bun run src/db/migrate.ts run",
