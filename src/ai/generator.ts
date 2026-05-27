@@ -3,18 +3,41 @@ import { GENERATE_WORKFLOW_PROMPT } from './prompts'
 import type { WorkflowDefinition } from '../engine/executor'
 import { randomUUID } from 'crypto'
 
+export interface AIConfig {
+  provider: string
+  modelName: string
+  apiKey: string
+  baseUrl?: string
+}
+
+function createClient(config: AIConfig): Anthropic {
+  const options: any = {
+    apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
+  }
+  if (config.baseUrl) {
+    options.baseURL = config.baseUrl
+  }
+  return new Anthropic(options)
+}
+
 export class WorkflowGenerator {
   private client: Anthropic
+  private modelName: string
 
-  constructor(apiKey?: string) {
-    this.client = new Anthropic({
-      apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
-    })
+  constructor(config?: Partial<AIConfig>) {
+    const cfg: AIConfig = {
+      provider: config?.provider || 'anthropic',
+      modelName: config?.modelName || 'claude-sonnet-4-20250514',
+      apiKey: config?.apiKey || process.env.ANTHROPIC_API_KEY || '',
+      baseUrl: config?.baseUrl,
+    }
+    this.client = createClient(cfg)
+    this.modelName = cfg.modelName
   }
 
   async generate(description: string): Promise<WorkflowDefinition> {
     const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: this.modelName,
       max_tokens: 4096,
       system: GENERATE_WORKFLOW_PROMPT,
       messages: [
@@ -53,7 +76,7 @@ export class WorkflowGenerator {
     feedback: string,
   ): Promise<WorkflowDefinition> {
     const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: this.modelName,
       max_tokens: 4096,
       system: `你是一个 RPA 流程修改专家。用户会给你一个现有流程和修改要求，请输出修改后的完整流程 JSON。\n\n${GENERATE_WORKFLOW_PROMPT}`,
       messages: [

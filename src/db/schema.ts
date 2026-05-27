@@ -64,3 +64,10 @@ export const credentials = sqliteTable('credentials', {
   data: text('data').notNull(), // encrypted JSON
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 })
+
+// 系统配置（KV 存储）
+export const configs = sqliteTable('configs', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+})

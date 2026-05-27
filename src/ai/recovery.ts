@@ -1,11 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { RECOVERY_PROMPT } from './prompts'
 import type { WorkflowStep } from '../engine/executor'
+import type { AIConfig } from './generator'
 
 interface RecoveryContext {
   failedStep: WorkflowStep
   error: Error
-  screenshot: string // base64
+  screenshot: string
   pageInfo: { url: string; title: string }
 }
 
@@ -15,13 +16,29 @@ interface RecoveryResult {
   reason: string
 }
 
+function createClient(config: AIConfig): Anthropic {
+  const options: any = {
+    apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
+  }
+  if (config.baseUrl) {
+    options.baseURL = config.baseUrl
+  }
+  return new Anthropic(options)
+}
+
 export class AIRecovery {
   private client: Anthropic
+  private modelName: string
 
-  constructor(apiKey?: string) {
-    this.client = new Anthropic({
-      apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
-    })
+  constructor(config?: Partial<AIConfig>) {
+    const cfg: AIConfig = {
+      provider: config?.provider || 'anthropic',
+      modelName: config?.modelName || 'claude-sonnet-4-20250514',
+      apiKey: config?.apiKey || process.env.ANTHROPIC_API_KEY || '',
+      baseUrl: config?.baseUrl,
+    }
+    this.client = createClient(cfg)
+    this.modelName = cfg.modelName
   }
 
   async analyze(context: RecoveryContext): Promise<RecoveryResult> {
@@ -49,7 +66,7 @@ ${context.error.message}
 已附上截图，请分析页面当前状态。`
 
     const response = await this.client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: this.modelName,
       max_tokens: 1024,
       system: RECOVERY_PROMPT,
       messages: [

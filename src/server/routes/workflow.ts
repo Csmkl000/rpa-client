@@ -3,11 +3,19 @@ import { db } from '../../db/index'
 import { workflows } from '../../db/schema'
 import { eq } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
-import { WorkflowGenerator } from '../../ai/generator'
+import { WorkflowGenerator, type AIConfig } from '../../ai/generator'
+import { getConfig } from './settings'
+
+async function getAIConfig(): Promise<AIConfig> {
+  return {
+    provider: await getConfig('model_provider'),
+    modelName: await getConfig('model_name'),
+    apiKey: await getConfig('model_api_key'),
+    baseUrl: await getConfig('model_base_url') || undefined,
+  }
+}
 
 export async function workflowRoutes(app: FastifyInstance) {
-  const generator = new WorkflowGenerator()
-
   // 获取所有流程
   app.get('/api/workflows', async () => {
     const all = await db.select().from(workflows)
@@ -65,6 +73,8 @@ export async function workflowRoutes(app: FastifyInstance) {
     '/api/workflows/generate',
     async (request) => {
       const { description } = request.body
+      const config = await getAIConfig()
+      const generator = new WorkflowGenerator(config)
       const workflow = await generator.generate(description)
 
       const now = new Date()
@@ -101,6 +111,8 @@ export async function workflowRoutes(app: FastifyInstance) {
         errorPolicy: JSON.parse(wf.errorPolicy),
       }
 
+      const config = await getAIConfig()
+      const generator = new WorkflowGenerator(config)
       const updated = await generator.modify(existing, feedback)
 
       await db.update(workflows).set({

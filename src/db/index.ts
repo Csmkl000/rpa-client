@@ -69,6 +69,12 @@ sqlite.exec(`
     data TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS configs (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
 `)
 
 export const db = drizzle(sqlite, { schema })

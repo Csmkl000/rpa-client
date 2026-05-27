@@ -6,7 +6,7 @@ const DEFAULT_PORT = 9222
 
 interface LaunchOptions {
   port?: number
-  userDataDir?: string
+  userDataDir?: string | 'default'
   browser?: 'chrome' | 'edge' | 'auto'
 }
 
@@ -37,6 +37,13 @@ const browserPaths: Record<string, Record<string, string[]>> = {
       '/usr/bin/microsoft-edge-stable',
     ],
   },
+}
+
+// 用户默认 Chrome 数据目录
+const defaultUserDataDirs: Record<string, string> = {
+  win32: join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'User Data'),
+  darwin: join(process.env.HOME || '', 'Library', 'Application Support', 'Google', 'Chrome'),
+  linux: join(process.env.HOME || '', '.config', 'google-chrome'),
 }
 
 function findBrowserPath(browser: 'chrome' | 'edge' | 'auto'): string {
@@ -82,20 +89,29 @@ export async function launchLocalBrowser(options: LaunchOptions = {}) {
   const port = options.port || DEFAULT_PORT
   const browserType = options.browser || 'auto'
 
+  // 已有浏览器在运行，直接复用
   if (await isPortOpen(port)) {
-    console.log(`浏览器已在 localhost:${port} 运行`)
+    console.log(`浏览器已在 localhost:${port} 运行，直接复用`)
     return { port, reused: true }
   }
 
   const browserPath = findBrowserPath(browserType)
-  const userDataDir = options.userDataDir || join(
-    process.env.HOME || process.env.USERPROFILE || '',
-    '.rpa',
-    'browser-profile'
-  )
+
+  // 默认使用用户自己的 Chrome 数据目录（保留登录状态、Cookie、扩展等）
+  let userDataDir: string
+  if (options.userDataDir === 'default' || options.userDataDir === undefined) {
+    userDataDir = defaultUserDataDirs[process.platform] || join(
+      process.env.HOME || process.env.USERPROFILE || '',
+      '.rpa',
+      'browser-profile'
+    )
+  } else {
+    userDataDir = options.userDataDir
+  }
 
   console.log(`启动浏览器: ${browserPath}`)
   console.log(`调试端口: ${port}`)
+  console.log(`用户数据目录: ${userDataDir}`)
 
   const child = spawn(browserPath, [
     `--remote-debugging-port=${port}`,
