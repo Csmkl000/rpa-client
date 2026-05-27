@@ -1,28 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { browserApi } from '../lib/api'
+import { useBrowserStore } from '../stores/browser'
 
 export default function Settings() {
-  const [browserStatus, setBrowserStatus] = useState<any>(null)
+  const { connected, info, check } = useBrowserStore()
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    checkBrowser()
-  }, [])
-
-  async function checkBrowser() {
-    try {
-      const status = await browserApi.status()
-      setBrowserStatus(status)
-    } catch {
-      setBrowserStatus({ connected: false })
-    }
-  }
 
   async function handleLaunch() {
     setLoading(true)
     try {
       await browserApi.launch()
-      await checkBrowser()
+      await check()
     } catch (err) {
       alert(`启动失败: ${(err as Error).message}`)
     } finally {
@@ -34,7 +22,7 @@ export default function Settings() {
     setLoading(true)
     try {
       await browserApi.close()
-      await checkBrowser()
+      await check()
     } catch (err) {
       alert(`关闭失败: ${(err as Error).message}`)
     } finally {
@@ -49,7 +37,6 @@ export default function Settings() {
         <p className="text-sm text-gray-500 mt-1">配置浏览器连接和 AI 服务</p>
       </div>
 
-      {/* 浏览器 */}
       <section className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
         <h3 className="text-base font-semibold text-gray-900 mb-5">浏览器连接</h3>
 
@@ -59,17 +46,17 @@ export default function Settings() {
             <div className="text-xs text-gray-500 mt-0.5">通过 CDP 协议连接本地 Chrome / Edge</div>
           </div>
           <div className="flex items-center gap-2">
-            <div className={`w-2.5 h-2.5 rounded-full ${browserStatus?.connected ? 'bg-green-400' : 'bg-red-400'}`} />
-            <span className={`text-sm font-medium ${browserStatus?.connected ? 'text-green-700' : 'text-red-700'}`}>
-              {browserStatus?.connected ? '已连接' : '未连接'}
+            <div className={`w-2.5 h-2.5 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`} />
+            <span className={`text-sm font-medium ${connected ? 'text-green-700' : 'text-red-700'}`}>
+              {connected ? '已连接' : '未连接'}
             </span>
           </div>
         </div>
 
-        {browserStatus?.connected && (
+        {connected && info && (
           <div className="flex gap-6 mb-5 text-sm">
-            <div><span className="text-gray-500">调试端口:</span> <span className="font-mono font-medium">{browserStatus.port}</span></div>
-            <div><span className="text-gray-500">标签页:</span> <span className="font-mono font-medium">{browserStatus.pageCount}</span></div>
+            <div><span className="text-gray-500">调试端口:</span> <span className="font-mono font-medium">{info.port}</span></div>
+            {info.browser && <div><span className="text-gray-500">浏览器:</span> <span className="font-mono font-medium">{info.browser}</span></div>}
           </div>
         )}
 
@@ -89,7 +76,7 @@ export default function Settings() {
             关闭浏览器
           </button>
           <button
-            onClick={checkBrowser}
+            onClick={check}
             className="px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             刷新
@@ -97,7 +84,6 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* 手动连接 */}
       <section className="bg-white rounded-xl border border-gray-200 p-6 mb-6 shadow-sm">
         <h3 className="text-base font-semibold text-gray-900 mb-4">手动连接浏览器</h3>
         <p className="text-sm text-gray-600 mb-4">如果自动启动失败，手动启动 Chrome 并开启远程调试：</p>
@@ -117,7 +103,6 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* AI 配置 */}
       <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <h3 className="text-base font-semibold text-gray-900 mb-4">AI 配置</h3>
         <div className="text-sm text-gray-600 space-y-3">
