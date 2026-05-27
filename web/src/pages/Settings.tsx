@@ -21,7 +21,6 @@ async function saveConfig(data: Record<string, string>): Promise<Record<string, 
 export default function Settings() {
   const { connected, info, check } = useBrowserStore()
   const [loading, setLoading] = useState(false)
-  const [launchMsg, setLaunchMsg] = useState<string | null>(null)
   const [config, setConfig] = useState<Record<string, string>>({})
   const [configLoading, setConfigLoading] = useState(true)
   const [saved, setSaved] = useState(false)
@@ -44,16 +43,11 @@ export default function Settings() {
 
   async function handleLaunch() {
     setLoading(true)
-    setLaunchMsg(null)
     try {
-      const result = await browserApi.launch()
-      if (result.needsManualRestart) {
-        setLaunchMsg(result.message)
-      } else {
-        await check()
-      }
+      await browserApi.launch()
+      await check()
     } catch (err) {
-      setLaunchMsg(`启动失败: ${(err as Error).message}`)
+      alert(`启动失败: ${(err as Error).message}`)
     } finally {
       setLoading(false)
     }
@@ -85,7 +79,7 @@ export default function Settings() {
         <div className="flex items-center justify-between mb-5 p-4 bg-gray-50 rounded-lg">
           <div>
             <div className="text-sm font-medium text-gray-900">连接状态</div>
-            <div className="text-xs text-gray-500 mt-0.5">通过 CDP 协议连接本地 Chrome / Edge</div>
+            <div className="text-xs text-gray-500 mt-0.5">RPA 使用独立的 Chrome 实例，不影响你的日常浏览器</div>
           </div>
           <div className="flex items-center gap-2">
             <div className={`w-2.5 h-2.5 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`} />
@@ -105,9 +99,9 @@ export default function Settings() {
         <div className="flex gap-3">
           <button onClick={handleLaunch} disabled={loading}
             className="px-5 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:opacity-50 transition-colors">
-            {loading ? '处理中...' : '启动浏览器'}
+            {loading ? '启动中...' : '启动浏览器'}
           </button>
-          <button onClick={handleClose} disabled={loading}
+          <button onClick={handleClose} disabled={loading || !connected}
             className="px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors">
             关闭浏览器
           </button>
@@ -116,29 +110,6 @@ export default function Settings() {
             刷新
           </button>
         </div>
-
-        {launchMsg && (
-          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <span className="text-amber-500 mt-0.5">⚠️</span>
-              <div>
-                <div className="text-sm font-medium text-amber-800 mb-2">需要手动启动浏览器</div>
-                <p className="text-sm text-amber-700 mb-3">{launchMsg}</p>
-                <div className="space-y-2">
-                  <div className="text-xs font-medium text-amber-600">操作步骤：</div>
-                  <ol className="text-xs text-amber-700 space-y-1.5 list-decimal list-inside">
-                    <li>关闭所有 Chrome 窗口</li>
-                    <li>按 Win+R，输入以下命令并回车：</li>
-                  </ol>
-                  <code className="block bg-amber-100 border border-amber-200 rounded px-3 py-2 text-xs font-mono text-amber-900 mt-2">
-                    chrome.exe --remote-debugging-port=9222
-                  </code>
-                  <p className="text-xs text-amber-600 mt-2">启动后回到此页面点击「刷新」</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* AI 模型配置 */}
@@ -146,7 +117,6 @@ export default function Settings() {
         <h3 className="text-base font-semibold text-gray-900 mb-5">AI 模型配置</h3>
 
         <div className="space-y-5">
-          {/* 模型提供商 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">模型提供商</label>
             <select
@@ -159,7 +129,6 @@ export default function Settings() {
             </select>
           </div>
 
-          {/* 模型名称 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">模型名称</label>
             {config.model_provider === 'openai' ? (
@@ -188,7 +157,6 @@ export default function Settings() {
             </p>
           </div>
 
-          {/* API Key */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">API Key</label>
             <input
@@ -201,7 +169,6 @@ export default function Settings() {
             <p className="text-xs text-gray-400 mt-1">留空则使用环境变量 ANTHROPIC_API_KEY</p>
           </div>
 
-          {/* Base URL（OpenAI 兼容模式） */}
           {config.model_provider === 'openai' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">API Base URL</label>
@@ -227,29 +194,7 @@ export default function Settings() {
           >
             {configLoading ? '保存中...' : '保存配置'}
           </button>
-          {saved && (
-            <span className="text-sm text-green-600 font-medium">已保存</span>
-          )}
-        </div>
-      </section>
-
-      {/* 手动连接 */}
-      <section className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-        <h3 className="text-base font-semibold text-gray-900 mb-4">手动连接浏览器</h3>
-        <p className="text-sm text-gray-600 mb-4">如果自动启动失败，手动启动 Chrome 并开启远程调试：</p>
-        <div className="space-y-3">
-          {[
-            { os: 'Windows', cmd: 'chrome.exe --remote-debugging-port=9222' },
-            { os: 'macOS', cmd: '/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome --remote-debugging-port=9222' },
-            { os: 'Linux', cmd: 'google-chrome --remote-debugging-port=9222' },
-          ].map((item) => (
-            <div key={item.os}>
-              <div className="text-xs font-medium text-gray-500 mb-1">{item.os}</div>
-              <code className="block bg-gray-50 border border-gray-100 rounded-lg px-4 py-2.5 text-xs font-mono text-gray-700">
-                {item.cmd}
-              </code>
-            </div>
-          ))}
+          {saved && <span className="text-sm text-green-600 font-medium">已保存</span>}
         </div>
       </section>
     </div>

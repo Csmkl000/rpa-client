@@ -1,12 +1,12 @@
-import { spawn, execSync } from 'child_process'
-import { existsSync } from 'fs'
+import { spawn } from 'child_process'
+import { existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
 const DEFAULT_PORT = 9222
 
 interface LaunchOptions {
   port?: number
-  userDataDir?: string | 'default'
+  userDataDir?: string
   browser?: 'chrome' | 'edge' | 'auto'
 }
 
@@ -14,8 +14,6 @@ interface LaunchResult {
   port: number
   reused: boolean
   pid?: number
-  needsManualRestart?: boolean
-  message?: string
 }
 
 const browserPaths: Record<string, Record<string, string[]>> = {
@@ -45,12 +43,6 @@ const browserPaths: Record<string, Record<string, string[]>> = {
       '/usr/bin/microsoft-edge-stable',
     ],
   },
-}
-
-const defaultUserDataDirs: Record<string, string> = {
-  win32: join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'User Data'),
-  darwin: join(process.env.HOME || '', 'Library', 'Application Support', 'Google', 'Chrome'),
-  linux: join(process.env.HOME || '', '.config', 'google-chrome'),
 }
 
 function findBrowserPath(browser: 'chrome' | 'edge' | 'auto'): string {
@@ -83,26 +75,6 @@ async function isDebugPortOpen(port: number): Promise<boolean> {
   }
 }
 
-function isChromeRunning(): boolean {
-  try {
-    if (process.platform === 'win32') {
-      const output = execSync('tasklist /FI "IMAGENAME eq chrome.exe" /NH', {
-        encoding: 'utf-8',
-        timeout: 5000,
-      })
-      return output.includes('chrome.exe')
-    } else if (process.platform === 'darwin') {
-      const output = execSync('pgrep -x "Google Chrome"', { encoding: 'utf-8', timeout: 5000 })
-      return output.trim().length > 0
-    } else {
-      const output = execSync('pgrep -x chrome || pgrep -x google-chrome || true', { encoding: 'utf-8', timeout: 5000 })
-      return output.trim().length > 0
-    }
-  } catch {
-    return false
-  }
-}
-
 async function waitForReady(port: number, timeout = 15000): Promise<void> {
   const start = Date.now()
   while (Date.now() - start < timeout) {
@@ -114,40 +86,27 @@ async function waitForReady(port: number, timeout = 15000): Promise<void> {
 
 export async function launchLocalBrowser(options: LaunchOptions = {}): Promise<LaunchResult> {
   const port = options.port || DEFAULT_PORT
-  const browserType = options.browser || 'auto'
 
   // 已经有调试端口在监听，直接复用
   if (await isDebugPortOpen(port)) {
-    console.log(`浏览器已在 localhost:${port} 运行（调试模式），直接复用`)
+    console.log(`浏览器已在 localhost:${port} 运行，直接复用`)
     return { port, reused: true }
   }
 
-  // Chrome 在运行但没有调试端口 → 无法自动开启
-  if (isChromeRunning()) {
-    return {
-      port,
-      reused: false,
-      needsManualRestart: true,
-      message: 'Chrome 已在运行但未开启调试端口。请关闭所有 Chrome 窗口后，用以下命令重新启动：\nchrome.exe --remote-debugging-port=9222',
-    }
-  }
+  const browserPath = findBrowserPath(options.browser || 'auto')
 
-  // Chrome 没有运行 → 直接启动
-  const browserPath = findBrowserPath(browserType)
+  // RPA 专用 profile（独立于用户日常浏览器）
+  const userDataDir = options.userDataDir || join(
+    process.env.HOME || process.env.USERPROFILE || '',
+    '.rpa',
+    'chrome-profile'
+  )
 
-  let userDataDir: string
-  if (options.userDataDir === 'default' || options.userDataDir === undefined) {
-    userDataDir = defaultUserDataDirs[process.platform] || join(
-      process.env.HOME || process.env.USERPROFILE || '',
-      '.rpa',
-      'browser-profile'
-    )
-  } else {
-    userDataDir = options.userDataDir
-  }
+  mkdirSync(userDataDir, { recursive: true })
 
-  console.log(`启动浏览器: ${browserPath}`)
+  console.log(`启动 RPA 浏览器: ${browserPath}`)
   console.log(`调试端口: ${port}`)
+  console.log(`Profile: ${userDataDir}`)
 
   const child = spawn(browserPath, [
     `--remote-debugging-port=${port}`,
@@ -165,7 +124,7 @@ export async function launchLocalBrowser(options: LaunchOptions = {}): Promise<L
   child.unref()
 
   await waitForReady(port)
-  console.log('浏览器已就绪（调试模式）')
+  console.log('RPA 浏览器已就绪')
 
   return { port, reused: false, pid: child.pid }
 }
