@@ -93,11 +93,16 @@ export class WorkflowExecutor {
     const mergedInputs = this.mergeInputs(workflow.inputs, inputs)
 
     try {
+      console.log('[执行] 连接浏览器...')
       await this.browserManager.connect()
 
+      console.log('[执行] 获取页面...')
       const pages = await this.browserManager.getPages()
+      console.log(`[执行] 找到 ${pages.length} 个页面`)
       const page = pages[0] || await this.browserManager.newPage()
+      console.log('[执行] 创建 Stagehand...')
       const stagehand = await this.browserManager.createStagehand(page)
+      console.log('[执行] Stagehand 就绪，开始执行步骤')
 
       for (const step of workflow.steps) {
         await this.executeStep(step, stagehand, page, mergedInputs, workflow.errorPolicy)
