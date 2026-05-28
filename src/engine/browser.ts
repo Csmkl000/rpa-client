@@ -56,10 +56,23 @@ export class BrowserManager {
       stagehandOptions.modelClientOptions.baseURL = this.options.baseUrl
     }
 
+    // 传入已有的 page，让 Stagehand 复用而不是自己启动浏览器
+    if (page) {
+      stagehandOptions.page = page
+    }
+
     this.stagehand = new Stagehand(stagehandOptions)
 
+    console.log('正在初始化 Stagehand...')
     try {
-      await this.stagehand.init()
+      // 加 60 秒超时防止卡死
+      await Promise.race([
+        this.stagehand.init(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Stagehand 初始化超时 (60s)')), 60000)
+        ),
+      ])
+      console.log('Stagehand 初始化完成')
     } catch (err) {
       console.error('Stagehand 初始化失败:', err)
       throw err
@@ -94,7 +107,9 @@ export class BrowserManager {
 
   async disconnect() {
     if (this.stagehand) {
-      await this.stagehand.close()
+      try {
+        await this.stagehand.close()
+      } catch {}
       this.stagehand = null
     }
     if (this.browser) {
