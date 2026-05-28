@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto'
 import { WorkflowExecutor } from '../../engine/executor'
 import { TaskQueue } from '../../scheduler/queue'
 import type { WsManager } from '../ws'
-import { getConfig } from './settings'
+import { getConfigs } from './settings'
 
 export async function executionRoutes(app: FastifyInstance, ws: WsManager) {
   const queue = new TaskQueue(2)
@@ -76,19 +76,14 @@ export async function executionRoutes(app: FastifyInstance, ws: WsManager) {
 
       // 加入队列异步执行
       queue.add(async () => {
-        // 读取 AI 配置
-        const [provider, modelName, apiKey, baseUrl] = await Promise.all([
-          getConfig('model_provider'),
-          getConfig('model_name'),
-          getConfig('model_api_key'),
-          getConfig('model_base_url'),
-        ])
+        // 读取 AI 配置（单次查询）
+        const cfg = await getConfigs(['model_provider', 'model_name', 'model_api_key', 'model_base_url'])
 
         const executor = new WorkflowExecutor({}, {
-          provider,
-          modelName,
-          apiKey,
-          baseUrl: baseUrl || undefined,
+          provider: cfg.model_provider,
+          modelName: cfg.model_name,
+          apiKey: cfg.model_api_key,
+          baseUrl: cfg.model_base_url || undefined,
         })
 
         // 监听执行事件，实时推送

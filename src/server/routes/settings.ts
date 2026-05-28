@@ -96,5 +96,16 @@ export async function settingsRoutes(app: FastifyInstance) {
   })
 }
 
+// 批量获取配置（单次查询）
+export async function getConfigs(keys: string[]): Promise<Record<string, string>> {
+  const rows = await db.select().from(configs)
+  const map = new Map(rows.map(r => [r.key, r.value]))
+  const result: Record<string, string> = {}
+  for (const key of keys) {
+    result[key] = map.get(key) ?? (DEFAULT_CONFIG[key] || '')
+  }
+  return result
+}
+
 // 导出 getConfig 供其他模块使用
 export { getConfig }

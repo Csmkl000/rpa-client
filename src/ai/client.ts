@@ -11,21 +11,39 @@ export interface ChatResponse {
   text: string
 }
 
+// 客户端缓存，避免每次调用都创建新实例
+const anthropicCache = new Map<string, Anthropic>()
+const openaiCache = new Map<string, OpenAI>()
+
+function cacheKey(config: AIConfig): string {
+  return `${config.apiKey}|${config.baseUrl || ''}|${config.modelName}`
+}
+
 export function createAnthropicClient(config: AIConfig): Anthropic {
+  const key = cacheKey(config)
+  if (anthropicCache.has(key)) return anthropicCache.get(key)!
+
   const options: any = {
     apiKey: config.apiKey || process.env.ANTHROPIC_API_KEY,
   }
   if (config.baseUrl) {
     options.baseURL = config.baseUrl
   }
-  return new Anthropic(options)
+  const client = new Anthropic(options)
+  anthropicCache.set(key, client)
+  return client
 }
 
 export function createOpenAIClient(config: AIConfig): OpenAI {
-  return new OpenAI({
+  const key = cacheKey(config)
+  if (openaiCache.has(key)) return openaiCache.get(key)!
+
+  const client = new OpenAI({
     apiKey: config.apiKey || process.env.OPENAI_API_KEY,
     baseURL: config.baseUrl || 'https://api.openai.com/v1',
   })
+  openaiCache.set(key, client)
+  return client
 }
 
 /**

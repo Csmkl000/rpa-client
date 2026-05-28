@@ -46,17 +46,41 @@ export const browserApi = {
 }
 
 export function createWs(onMessage: (event: string, data: any) => void) {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const ws = new WebSocket(`${protocol}//${window.location.host}/ws`)
+  let ws: WebSocket | null = null
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  let disposed = false
 
-  ws.onmessage = (msg) => {
-    try {
-      const { event, data } = JSON.parse(msg.data)
-      onMessage(event, data)
-    } catch {}
+  function connect() {
+    if (disposed) return
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    ws = new WebSocket(`${protocol}//${window.location.host}/ws`)
+
+    ws.onmessage = (msg) => {
+      try {
+        const { event, data } = JSON.parse(msg.data)
+        onMessage(event, data)
+      } catch {}
+    }
+
+    ws.onerror = () => {
+      // onclose will fire after this, which handles reconnection
+    }
+
+    ws.onclose = () => {
+      if (!disposed) {
+        reconnectTimer = setTimeout(connect, 3000)
+      }
+    }
   }
 
-  ws.onerror = (err) => console.error('WebSocket error:', err)
+  connect()
 
-  return ws
+  return {
+    close() {
+      disposed = true
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      if (ws) ws.close()
+    },
+  }
 }

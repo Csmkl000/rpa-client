@@ -4,14 +4,15 @@ import { workflows } from '../../db/schema'
 import { eq } from 'drizzle-orm'
 import { randomUUID } from 'crypto'
 import { WorkflowGenerator, type AIConfig } from '../../ai/generator'
-import { getConfig } from './settings'
+import { getConfigs } from './settings'
 
 async function getAIConfig(): Promise<AIConfig> {
+  const cfg = await getConfigs(['model_provider', 'model_name', 'model_api_key', 'model_base_url'])
   return {
-    provider: await getConfig('model_provider'),
-    modelName: await getConfig('model_name'),
-    apiKey: await getConfig('model_api_key'),
-    baseUrl: await getConfig('model_base_url') || undefined,
+    provider: cfg.model_provider,
+    modelName: cfg.model_name,
+    apiKey: cfg.model_api_key,
+    baseUrl: cfg.model_base_url || undefined,
   }
 }
 
