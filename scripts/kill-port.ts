@@ -1,5 +1,5 @@
-// 跨平台端口清理脚本
-const port = parseInt(process.argv[2] || '3456')
+// 跨平台端口清理脚本 - 清理所有 RPA 相关端口
+const ports = [3456, 3457, 3458, 3001, 3002]
 
 async function killPort(p: number) {
   try {
@@ -15,4 +15,6 @@ async function killPort(p: number) {
   } catch {}
 }
 
-await killPort(port)
+for (const port of ports) {
+  await killPort(port)
+}

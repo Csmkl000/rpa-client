@@ -7,10 +7,10 @@
     "rpa-client": "./src/cli.ts"
   },
   "scripts": {
-    "dev": "bun run scripts/kill-port.ts 3456 && concurrently \"bun run server:dev\" \"bun run web:dev\"",
-    "server:dev": "bun --watch src/server/index.ts",
+    "dev": "bun run scripts/kill-port.ts && concurrently \"bun run server:dev\" \"bun run web:dev\"",
+    "server:dev": "bun src/server/index.ts",
     "web:dev": "cd web && bun run dev",
-    "kill": "bun run scripts/kill-port.ts 3456",
+    "kill": "bun run scripts/kill-port.ts",
     "web:build": "cd web && bun run build",
     "db:generate": "bun run src/db/migrate.ts generate",
     "db:migrate": "bun run src/db/migrate.ts run",

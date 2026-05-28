@@ -14,7 +14,7 @@ export interface ServerOptions {
 }
 
 export async function startServer(options: ServerOptions = {}) {
-  const requestedPort = options.port || 3456
+  const port = options.port || 3456
   const host = options.host || 'localhost'
 
   const app = Fastify({ logger: true })
@@ -39,25 +39,11 @@ export async function startServer(options: ServerOptions = {}) {
     wsClients: ws.clientCount,
   }))
 
-  // 端口被占用时自动尝试下一个
-  let port = requestedPort
-  for (let i = 0; i < 10; i++) {
-    try {
-      await app.listen({ port, host })
-      break
-    } catch (err: any) {
-      if (err.code === 'EADDRINUSE') {
-        console.log(`端口 ${port} 被占用，尝试 ${port + 1}...`)
-        port++
-      } else {
-        throw err
-      }
-    }
-  }
+  await app.listen({ port, host })
 
   console.log(`\n  RPA Client 已启动: http://localhost:${port}\n`)
 
-  return { app, server, ws, port }
+  return { app, server, ws }
 }
 
 if (import.meta.main) {
