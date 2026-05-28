@@ -7,7 +7,7 @@
     "rpa-client": "./src/cli.ts"
   },
   "scripts": {
-    "dev": "bun run scripts/kill-port.ts && concurrently \"bun run server:dev\" \"bun run web:dev\"",
+    "dev": "bun run scripts/kill-port.ts && concurrently --success first \"bun src/server/index.ts\" \"bun run web:dev\"",
     "server:dev": "bun src/server/index.ts",
     "web:dev": "cd web && bun run dev",
     "kill": "bun run scripts/kill-port.ts",
